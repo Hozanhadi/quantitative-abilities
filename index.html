@@ -1,0 +1,1065 @@
+<!doctype html>
+<html lang="ar" dir="rtl" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>منصة القدرات الكمية</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Tajawal', sans-serif; }
+    .gradient-bg { background: linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 100%); }
+    .card-gradient { background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%); }
+    .topic-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
+    .btn-primary { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); }
+    .btn-primary:hover { background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%); }
+    .progress-ring { transition: stroke-dashoffset 0.5s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade { animation: fadeIn 0.5s ease forwards; }
+    .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+  </style>
+  <style>
+    body { box-sizing: border-box; }
+  </style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full bg-slate-50">
+  <div id="app" class="h-full overflow-auto scrollbar-thin"></div>
+  <script>
+    // App State - using localStorage instead of SDK
+    let currentUser = null;
+    let isAdmin = false;
+    let currentView = 'login';
+    let currentTopic = null;
+    let currentModel = null;
+    let currentQuestionIndex = 0;
+    let userAnswers = [];
+    let allRecords = [];
+    let siteTitle = 'منصة القدرات الكمية';
+
+    // Load data from localStorage
+    function loadData() {
+      const saved = localStorage.getItem('quizRecords');
+      allRecords = saved ? JSON.parse(saved) : [];
+    }
+
+    // Save data to localStorage
+    function saveData() {
+      localStorage.setItem('quizRecords', JSON.stringify(allRecords));
+    }
+
+    loadData();
+
+    // Topics Data with Guides
+    const topics = [
+      {
+        id: 'arithmetic',
+        name: 'الحساب',
+        icon: '🔢',
+        color: '#3b82f6',
+        guide: `
+          <h3 class="text-xl font-bold mb-4 text-blue-600">دليل قسم الحساب</h3>
+          <div class="space-y-4 text-gray-700">
+            <p><strong>العمليات الأساسية:</strong> الجمع، الطرح، الضرب، القسمة</p>
+            <p><strong>الأعداد الصحيحة:</strong> موجبة وسالبة وقواعد التعامل معها</p>
+            <p><strong>الكسور:</strong> جمع وطرح وضرب وقسمة الكسور</p>
+            <p><strong>الأعداد العشرية:</strong> تحويلها وإجراء العمليات عليها</p>
+            <p><strong>النسبة المئوية:</strong> حساب النسب والزيادة والنقصان</p>
+            <p><strong>نصائح:</strong> تدرب على الحساب الذهني السريع وحفظ جدول الضرب</p>
+          </div>
+        `
+      },
+      {
+        id: 'algebra',
+        name: 'الجبر',
+        icon: '📐',
+        color: '#8b5cf6',
+        guide: `
+          <h3 class="text-xl font-bold mb-4 text-purple-600">دليل قسم الجبر</h3>
+          <div class="space-y-4 text-gray-700">
+            <p><strong>المتغيرات:</strong> استخدام الرموز للتعبير عن الأعداد المجهولة</p>
+            <p><strong>المعادلات الخطية:</strong> حل معادلات من الدرجة الأولى</p>
+            <p><strong>المعادلات التربيعية:</strong> التحليل والقانون العام</p>
+            <p><strong>المتباينات:</strong> حل وتمثيل المتباينات على خط الأعداد</p>
+            <p><strong>الدوال:</strong> فهم العلاقة بين المدخلات والمخرجات</p>
+            <p><strong>نصائح:</strong> افهم القواعد الأساسية جيداً قبل حل المسائل المعقدة</p>
+          </div>
+        `
+      },
+      {
+        id: 'geometry',
+        name: 'الهندسة',
+        icon: '📏',
+        color: '#10b981',
+        guide: `
+          <h3 class="text-xl font-bold mb-4 text-green-600">دليل قسم الهندسة</h3>
+          <div class="space-y-4 text-gray-700">
+            <p><strong>الأشكال الثنائية:</strong> المثلث، المربع، المستطيل، الدائرة</p>
+            <p><strong>المحيط والمساحة:</strong> قوانين حساب محيط ومساحة الأشكال</p>
+            <p><strong>الأشكال الثلاثية:</strong> المكعب، الأسطوانة، الكرة، المخروط</p>
+            <p><strong>الحجم:</strong> قوانين حساب حجم المجسمات</p>
+            <p><strong>الزوايا:</strong> أنواعها وقياساتها والعلاقات بينها</p>
+            <p><strong>نصائح:</strong> احفظ القوانين الأساسية وارسم الأشكال دائماً</p>
+          </div>
+        `
+      },
+      {
+        id: 'statistics',
+        name: 'الإحصاء',
+        icon: '📊',
+        color: '#f59e0b',
+        guide: `
+          <h3 class="text-xl font-bold mb-4 text-amber-600">دليل قسم الإحصاء</h3>
+          <div class="space-y-4 text-gray-700">
+            <p><strong>المتوسط الحسابي:</strong> مجموع القيم ÷ عددها</p>
+            <p><strong>الوسيط:</strong> القيمة الوسطى بعد الترتيب</p>
+            <p><strong>المنوال:</strong> القيمة الأكثر تكراراً</p>
+            <p><strong>المدى:</strong> الفرق بين أكبر وأصغر قيمة</p>
+            <p><strong>الاحتمالات:</strong> حساب احتمال وقوع حدث معين</p>
+            <p><strong>نصائح:</strong> تدرب على قراءة الرسوم البيانية والجداول</p>
+          </div>
+        `
+      },
+      {
+        id: 'comparison',
+        name: 'المقارنة',
+        icon: '⚖️',
+        color: '#ef4444',
+        guide: `
+          <h3 class="text-xl font-bold mb-4 text-red-600">دليل قسم المقارنة</h3>
+          <div class="space-y-4 text-gray-700">
+            <p><strong>مقارنة الأعداد:</strong> تحديد الأكبر والأصغر والمساواة</p>
+            <p><strong>مقارنة الكسور:</strong> توحيد المقامات أو التحويل لعشري</p>
+            <p><strong>مقارنة التعابير:</strong> تبسيط ثم المقارنة</p>
+            <p><strong>استراتيجيات:</strong> التعويض بأرقام بسيطة للتحقق</p>
+            <p><strong>الخيارات:</strong> أ أكبر، ب أكبر، متساويان، لا يمكن التحديد</p>
+            <p><strong>نصائح:</strong> لا تتسرع واقرأ السؤال جيداً</p>
+          </div>
+        `
+      },
+      {
+        id: 'word-problems',
+        name: 'مسائل كلامية',
+        icon: '📝',
+        color: '#06b6d4',
+        guide: `
+          <h3 class="text-xl font-bold mb-4 text-cyan-600">دليل قسم المسائل الكلامية</h3>
+          <div class="space-y-4 text-gray-700">
+            <p><strong>الخطوة 1:</strong> اقرأ المسألة بتمعن وحدد المطلوب</p>
+            <p><strong>الخطوة 2:</strong> استخرج المعطيات والأرقام المهمة</p>
+            <p><strong>الخطوة 3:</strong> حدد العملية أو المعادلة المناسبة</p>
+            <p><strong>الخطوة 4:</strong> حل وتحقق من منطقية الإجابة</p>
+            <p><strong>أنواع المسائل:</strong> العمر، المسافة، العمل، الخلطات</p>
+            <p><strong>نصائح:</strong> حول المسألة لمعادلة رياضية واضحة</p>
+          </div>
+        `
+      }
+    ];
+
+    // Generate questions for each topic
+    function generateQuestions(topicId, modelNum) {
+      const questions = [];
+      const templates = getQuestionTemplates(topicId);
+      
+      for (let i = 0; i < 10; i++) {
+        const template = templates[i % templates.length];
+        const q = generateQuestion(template, i, modelNum);
+        questions.push(q);
+      }
+      return questions;
+    }
+
+    function getQuestionTemplates(topicId) {
+      const templates = {
+        arithmetic: [
+          { type: 'add', text: 'ما ناتج: {a} + {b} = ?' },
+          { type: 'sub', text: 'ما ناتج: {a} - {b} = ?' },
+          { type: 'mul', text: 'ما ناتج: {a} × {b} = ?' },
+          { type: 'div', text: 'ما ناتج: {a} ÷ {b} = ?' },
+          { type: 'percent', text: 'ما قيمة {p}% من {a}؟' },
+          { type: 'fraction', text: 'ما ناتج {a}/{b} + {c}/{d}؟' },
+          { type: 'order', text: 'رتب من الأصغر للأكبر: {a}, {b}, {c}' },
+          { type: 'decimal', text: 'حول {a}/{b} إلى عدد عشري' },
+          { type: 'ratio', text: 'إذا كانت النسبة {a}:{b}، فما قيمة الجزء الأول من {c}؟' },
+          { type: 'mixed', text: 'ما ناتج ({a} + {b}) × {c}؟' }
+        ],
+        algebra: [
+          { type: 'linear', text: 'حل المعادلة: {a}س + {b} = {c}' },
+          { type: 'expr', text: 'بسّط: {a}س + {b}س - {c}' },
+          { type: 'quad', text: 'حل: س² = {a}' },
+          { type: 'ineq', text: 'حل المتباينة: {a}س > {b}' },
+          { type: 'system', text: 'إذا كان س + ص = {a} و س - ص = {b}، فما قيمة س؟' },
+          { type: 'factor', text: 'حلل: س² - {a}' },
+          { type: 'eval', text: 'إذا كان س = {a}، فما قيمة {b}س + {c}؟' },
+          { type: 'func', text: 'إذا كان ق(س) = {a}س + {b}، فما قيمة ق({c})؟' },
+          { type: 'seq', text: 'أوجد الحد التالي: {a}, {b}, {c}, ...' },
+          { type: 'power', text: 'ما قيمة {a}^{b}؟' }
+        ],
+        geometry: [
+          { type: 'rect_area', text: 'مساحة مستطيل طوله {a} وعرضه {b}' },
+          { type: 'rect_peri', text: 'محيط مستطيل طوله {a} وعرضه {b}' },
+          { type: 'tri_area', text: 'مساحة مثلث قاعدته {a} وارتفاعه {b}' },
+          { type: 'circle_area', text: 'مساحة دائرة نصف قطرها {a} (π = 3.14)' },
+          { type: 'circle_circ', text: 'محيط دائرة نصف قطرها {a} (π = 3.14)' },
+          { type: 'cube_vol', text: 'حجم مكعب طول ضلعه {a}' },
+          { type: 'box_vol', text: 'حجم صندوق أبعاده {a} × {b} × {c}' },
+          { type: 'angle', text: 'إذا كان مجموع زاويتين متكاملتين، وإحداهما {a}°، فما الأخرى؟' },
+          { type: 'pyth', text: 'في مثلث قائم، إذا كان الضلعان {a} و {b}، فما الوتر؟' },
+          { type: 'square', text: 'مساحة مربع محيطه {a}' }
+        ],
+        statistics: [
+          { type: 'mean', text: 'المتوسط الحسابي للأعداد: {a}, {b}, {c}, {d}, {e}' },
+          { type: 'median', text: 'الوسيط للأعداد: {a}, {b}, {c}, {d}, {e}' },
+          { type: 'mode', text: 'المنوال للأعداد: {a}, {b}, {a}, {c}, {a}' },
+          { type: 'range', text: 'المدى للأعداد: {a}, {b}, {c}, {d}, {e}' },
+          { type: 'prob', text: 'احتمال اختيار كرة حمراء من {a} حمراء و {b} زرقاء' },
+          { type: 'sum', text: 'مجموع الأعداد: {a}, {b}, {c}' },
+          { type: 'count', text: 'كم عدد الأعداد الزوجية من 1 إلى {a}؟' },
+          { type: 'avg_word', text: 'إذا كان متوسط {a} أعداد هو {b}، فما مجموعها؟' },
+          { type: 'percent_stat', text: 'ما نسبة {a} من {b} كنسبة مئوية؟' },
+          { type: 'data', text: 'في استطلاع، {a} اختاروا أ و{b} اختاروا ب، ما الفرق؟' }
+        ],
+        comparison: [
+          { type: 'num', text: 'قارن: {a} و {b}' },
+          { type: 'expr', text: 'قارن: {a} + {b} و {c} + {d}' },
+          { type: 'frac', text: 'قارن: {a}/{b} و {c}/{d}' },
+          { type: 'percent', text: 'قارن: {a}% من {b} و {c}% من {d}' },
+          { type: 'power', text: 'قارن: {a}² و {b}²' },
+          { type: 'root', text: 'قارن: √{a} و {b}' },
+          { type: 'neg', text: 'قارن: -{a} و -{b}' },
+          { type: 'mixed', text: 'قارن: {a} × {b} و {c} + {d}' },
+          { type: 'abs', text: 'قارن: |{a}| و |{b}|' },
+          { type: 'ratio', text: 'قارن: {a}:{b} و {c}:{d}' }
+        ],
+        'word-problems': [
+          { type: 'age', text: 'عمر أحمد ضعف عمر سالم. إذا كان عمر سالم {a} سنة، فكم عمر أحمد؟' },
+          { type: 'money', text: 'اشترى كتاباً بـ{a} ريال ودفع {b} ريال، كم الباقي؟' },
+          { type: 'speed', text: 'قطع سيارة {a} كم في {b} ساعات، ما سرعتها؟' },
+          { type: 'work', text: 'يُنجز عامل عملاً في {a} أيام، كم ينجز في يوم واحد؟' },
+          { type: 'profit', text: 'اشترى بـ{a} وباع بـ{b}، ما الربح؟' },
+          { type: 'divide', text: 'وُزّع {a} تفاحة على {b} أطفال بالتساوي، كم لكل طفل؟' },
+          { type: 'total', text: 'سعر قلم {a} ريال، كم سعر {b} أقلام؟' },
+          { type: 'diff', text: 'الفرق بين عددين {a}، أحدهما {b}، ما الآخر؟' },
+          { type: 'percent_word', text: 'زاد السعر {a}% من {b} ريال، ما السعر الجديد؟' },
+          { type: 'time', text: 'بدأ الاجتماع الساعة {a} واستمر {b} ساعات، متى انتهى؟' }
+        ]
+      };
+      return templates[topicId] || templates.arithmetic;
+    }
+
+    function generateQuestion(template, index, modelNum) {
+      const seed = modelNum * 100 + index;
+      const rand = (min, max) => min + ((seed * (index + 1) * 7) % (max - min + 1));
+      
+      let a = rand(2, 20), b = rand(2, 15), c = rand(2, 10), d = rand(2, 8), e = rand(1, 25);
+      let p = rand(10, 50);
+      
+      let text = template.text
+        .replace('{a}', a).replace('{b}', b).replace('{c}', c)
+        .replace('{d}', d).replace('{e}', e).replace('{p}', p);
+      
+      let answer, options;
+      
+      switch(template.type) {
+        case 'add': answer = a + b; break;
+        case 'sub': answer = a - b; break;
+        case 'mul': answer = a * b; break;
+        case 'div': answer = Math.round(a / b * 10) / 10; break;
+        case 'percent': answer = Math.round(p * a / 100 * 10) / 10; break;
+        case 'linear': answer = Math.round((c - b) / a * 10) / 10; break;
+        case 'rect_area': answer = a * b; break;
+        case 'rect_peri': answer = 2 * (a + b); break;
+        case 'tri_area': answer = Math.round(a * b / 2 * 10) / 10; break;
+        case 'circle_area': answer = Math.round(3.14 * a * a * 10) / 10; break;
+        case 'cube_vol': answer = a * a * a; break;
+        case 'mean': answer = Math.round((a + b + c + d + e) / 5 * 10) / 10; break;
+        case 'age': answer = a * 2; break;
+        case 'money': answer = b - a; break;
+        case 'speed': answer = Math.round(a / b * 10) / 10; break;
+        default: answer = a + b;
+      }
+      
+      options = generateOptions(answer);
+      
+      return { text, options, answer: 0 };
+    }
+
+    function generateOptions(correctAnswer) {
+      const options = [correctAnswer];
+      const variations = [
+        correctAnswer + 1, correctAnswer - 1,
+        correctAnswer + 2, correctAnswer * 2,
+        Math.round(correctAnswer / 2), correctAnswer + 5
+      ].filter(v => v !== correctAnswer && v > 0);
+      
+      while (options.length < 4 && variations.length > 0) {
+        const idx = Math.floor(Math.random() * variations.length);
+        options.push(variations.splice(idx, 1)[0]);
+      }
+      
+      while (options.length < 4) {
+        options.push(correctAnswer + options.length);
+      }
+      
+      return options.sort(() => Math.random() - 0.5).map(String);
+    }
+
+    // SDK Setup - Removed
+    const defaultConfig = {
+      site_title: 'منصة القدرات الكمية'
+    };
+
+    async function initApp() {
+      render();
+    }
+
+    // Render Functions
+    function render() {
+      const app = document.getElementById('app');
+      
+      switch(currentView) {
+        case 'login':
+          renderLogin();
+          break;
+        case 'dashboard':
+          renderDashboard();
+          break;
+        case 'topic':
+          renderTopic();
+          break;
+        case 'guide':
+          renderGuide();
+          break;
+        case 'quiz':
+          renderQuiz();
+          break;
+        case 'result':
+          renderResult();
+          break;
+        case 'admin':
+          renderAdminDashboard();
+          break;
+      }
+    }
+
+    function renderLogin() {
+      const app = document.getElementById('app');
+      app.innerHTML = `
+        <div class="min-h-full gradient-bg flex items-center justify-center p-4">
+          <div class="w-full max-w-md">
+            <div class="card-gradient rounded-3xl shadow-2xl p-8 animate-fade">
+              <div class="text-center mb-8">
+                <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg">
+                  <span class="text-4xl">🎯</span>
+                </div>
+                <h1 id="site-title" class="text-2xl font-bold text-gray-800">${siteTitle}</h1>
+                <p class="text-gray-500 mt-2">سجّل دخولك للبدء</p>
+              </div>
+              
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">الاسم</label>
+                  <input type="text" id="username" placeholder="أدخل اسمك" 
+                    class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                </div>
+                
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">كلمة المرور</label>
+                  <input type="password" id="password" placeholder="أدخل كلمة المرور" 
+                    class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                </div>
+                
+                <div id="login-error" class="hidden text-red-500 text-sm text-center bg-red-50 py-2 rounded-lg"></div>
+                
+                <button onclick="handleLogin()" 
+                  class="w-full btn-primary text-white font-bold py-3 px-6 rounded-xl transition transform hover:scale-[1.02] active:scale-[0.98]">
+                  تسجيل الدخول
+                </button>
+                
+                <div class="relative my-6">
+                  <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-200"></div>
+                  </div>
+                  <div class="relative flex justify-center text-sm">
+                    <span class="px-4 bg-white text-gray-400">أو</span>
+                  </div>
+                </div>
+                
+                <button onclick="showAdminLogin()" 
+                  class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-6 rounded-xl transition">
+                  🔐 دخول المدير
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function handleLogin() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const errorEl = document.getElementById('login-error');
+      
+      if (!username) {
+        errorEl.textContent = 'الرجاء إدخال الاسم';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+      
+      if (password !== '2010') {
+        errorEl.textContent = 'كلمة المرور غير صحيحة';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+      
+      currentUser = username;
+      isAdmin = false;
+      currentView = 'dashboard';
+      render();
+    }
+
+    function showAdminLogin() {
+      const app = document.getElementById('app');
+      app.innerHTML = `
+        <div class="min-h-full gradient-bg flex items-center justify-center p-4">
+          <div class="w-full max-w-md">
+            <div class="card-gradient rounded-3xl shadow-2xl p-8 animate-fade">
+              <div class="text-center mb-8">
+                <div class="w-20 h-20 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg">
+                  <span class="text-4xl">👨‍💼</span>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800">لوحة المدير</h1>
+                <p class="text-gray-500 mt-2">أدخل بيانات المدير</p>
+              </div>
+              
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">اسم المدير</label>
+                  <input type="text" id="admin-username" placeholder="اسم المدير" 
+                    class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent transition">
+                </div>
+                
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">كلمة المرور</label>
+                  <input type="password" id="admin-password" placeholder="كلمة المرور" 
+                    class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent transition">
+                </div>
+                
+                <div id="admin-error" class="hidden text-red-500 text-sm text-center bg-red-50 py-2 rounded-lg"></div>
+                
+                <button onclick="handleAdminLogin()" 
+                  class="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold py-3 px-6 rounded-xl transition transform hover:scale-[1.02]">
+                  دخول
+                </button>
+                
+                <button onclick="currentView='login'; render();" 
+                  class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-6 rounded-xl transition">
+                  ← رجوع
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function handleAdminLogin() {
+      const username = document.getElementById('admin-username').value.trim();
+      const password = document.getElementById('admin-password').value;
+      const errorEl = document.getElementById('admin-error');
+      
+      if (username === 'Hozan' && password === '2010') {
+        currentUser = 'Hozan';
+        isAdmin = true;
+        currentView = 'admin';
+        render();
+      } else {
+        errorEl.textContent = 'بيانات الدخول غير صحيحة';
+        errorEl.classList.remove('hidden');
+      }
+    }
+
+    function renderDashboard() {
+      const app = document.getElementById('app');
+      const userRecords = allRecords.filter(r => r.student_name === currentUser);
+      
+      app.innerHTML = `
+        <div class="min-h-full bg-slate-50">
+          <!-- Header -->
+          <header class="gradient-bg text-white py-6 px-4 shadow-lg">
+            <div class="max-w-6xl mx-auto flex items-center justify-between">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <span class="text-2xl">👋</span>
+                </div>
+                <div>
+                  <h1 class="text-xl font-bold">مرحباً، ${currentUser}</h1>
+                  <p class="text-blue-200 text-sm">اختر موضوعاً للبدء</p>
+                </div>
+              </div>
+              <button onclick="logout()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition">
+                خروج
+              </button>
+            </div>
+          </header>
+          
+          <!-- Stats -->
+          <div class="max-w-6xl mx-auto px-4 -mt-4">
+            <div class="bg-white rounded-2xl shadow-lg p-6 grid grid-cols-3 gap-4">
+              <div class="text-center">
+                <div class="text-3xl font-bold text-blue-600">${userRecords.length}</div>
+                <div class="text-gray-500 text-sm">اختبار مكتمل</div>
+              </div>
+              <div class="text-center border-x border-gray-100">
+                <div class="text-3xl font-bold text-green-600">${userRecords.length > 0 ? Math.round(userRecords.reduce((a, r) => a + (r.score / r.total_questions * 100), 0) / userRecords.length) : 0}%</div>
+                <div class="text-gray-500 text-sm">متوسط النتائج</div>
+              </div>
+              <div class="text-center">
+                <div class="text-3xl font-bold text-purple-600">${topics.length}</div>
+                <div class="text-gray-500 text-sm">موضوعات متاحة</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Topics Grid -->
+          <div class="max-w-6xl mx-auto px-4 py-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-6">📚 الموضوعات</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              ${topics.map(topic => {
+                const topicRecords = userRecords.filter(r => r.topic_id === topic.id);
+                const completedModels = new Set(topicRecords.map(r => r.model_number)).size;
+                const progress = Math.round(completedModels / 55 * 100);
+                
+                return `
+                  <div onclick="selectTopic('${topic.id}')" 
+                    class="topic-card card-gradient rounded-2xl p-6 cursor-pointer transition-all duration-300 border border-gray-100 hover:border-gray-200">
+                    <div class="flex items-start justify-between mb-4">
+                      <div class="w-14 h-14 rounded-xl flex items-center justify-center text-3xl" style="background: ${topic.color}20">
+                        ${topic.icon}
+                      </div>
+                      <div class="text-left">
+                        <div class="text-2xl font-bold" style="color: ${topic.color}">${completedModels}</div>
+                        <div class="text-xs text-gray-400">/ 55 نموذج</div>
+                      </div>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">${topic.name}</h3>
+                    <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
+                      <div class="h-2 rounded-full transition-all" style="width: ${progress}%; background: ${topic.color}"></div>
+                    </div>
+                    <p class="text-sm text-gray-500">${progress}% مكتمل</p>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function selectTopic(topicId) {
+      currentTopic = topics.find(t => t.id === topicId);
+      currentView = 'topic';
+      render();
+    }
+
+    function renderTopic() {
+      const app = document.getElementById('app');
+      const userRecords = allRecords.filter(r => r.student_name === currentUser && r.topic_id === currentTopic.id);
+      const completedModels = new Set(userRecords.map(r => r.model_number));
+      
+      app.innerHTML = `
+        <div class="min-h-full bg-slate-50">
+          <!-- Header -->
+          <header class="gradient-bg text-white py-6 px-4">
+            <div class="max-w-6xl mx-auto">
+              <button onclick="currentView='dashboard'; render();" class="flex items-center gap-2 text-blue-200 hover:text-white mb-4 transition">
+                <span>→</span> رجوع للرئيسية
+              </button>
+              <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-4xl" style="background: ${currentTopic.color}40">
+                  ${currentTopic.icon}
+                </div>
+                <div>
+                  <h1 class="text-2xl font-bold">${currentTopic.name}</h1>
+                  <p class="text-blue-200">${completedModels.size} / 55 نموذج مكتمل</p>
+                </div>
+              </div>
+            </div>
+          </header>
+          
+          <!-- Guide Button -->
+          <div class="max-w-6xl mx-auto px-4 py-4">
+            <button onclick="showGuide()" 
+              class="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transition transform hover:scale-[1.01] flex items-center justify-center gap-3">
+              <span class="text-2xl">📖</span>
+              <span>عرض دليل القسم قبل البدء</span>
+            </button>
+          </div>
+          
+          <!-- Models Grid -->
+          <div class="max-w-6xl mx-auto px-4 py-4">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">اختر نموذجاً</h2>
+            <div class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-11 gap-2">
+              ${Array.from({length: 55}, (_, i) => {
+                const modelNum = i + 1;
+                const isCompleted = completedModels.has(modelNum);
+                const record = userRecords.find(r => r.model_number === modelNum);
+                
+                return `
+                  <button onclick="startQuiz(${modelNum})" 
+                    class="aspect-square rounded-xl font-bold text-sm transition-all ${
+                      isCompleted 
+                        ? 'bg-green-500 text-white hover:bg-green-600' 
+                        : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-blue-400 hover:bg-blue-50'
+                    }">
+                    ${modelNum}
+                    ${isCompleted ? `<div class="text-[10px]">${record ? Math.round(record.score/record.total_questions*100) : 0}%</div>` : ''}
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function showGuide() {
+      currentView = 'guide';
+      render();
+    }
+
+    function renderGuide() {
+      const app = document.getElementById('app');
+      
+      app.innerHTML = `
+        <div class="min-h-full bg-slate-50">
+          <header class="gradient-bg text-white py-6 px-4">
+            <div class="max-w-4xl mx-auto">
+              <button onclick="currentView='topic'; render();" class="flex items-center gap-2 text-blue-200 hover:text-white mb-4 transition">
+                <span>→</span> رجوع
+              </button>
+              <div class="flex items-center gap-4">
+                <span class="text-4xl">📖</span>
+                <h1 class="text-2xl font-bold">دليل ${currentTopic.name}</h1>
+              </div>
+            </div>
+          </header>
+          
+          <div class="max-w-4xl mx-auto px-4 py-8">
+            <div class="bg-white rounded-2xl shadow-lg p-8">
+              ${currentTopic.guide}
+              
+              <div class="mt-8 pt-6 border-t border-gray-100">
+                <button onclick="currentView='topic'; render();" 
+                  class="w-full btn-primary text-white font-bold py-4 px-6 rounded-xl transition">
+                  فهمت! ابدأ الاختبارات ←
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function startQuiz(modelNum) {
+      currentModel = modelNum;
+      currentQuestionIndex = 0;
+      userAnswers = [];
+      currentView = 'quiz';
+      render();
+    }
+
+    function renderQuiz() {
+      const app = document.getElementById('app');
+      const questions = generateQuestions(currentTopic.id, currentModel);
+      const question = questions[currentQuestionIndex];
+      const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+      
+      app.innerHTML = `
+        <div class="min-h-full bg-slate-50">
+          <header class="bg-white shadow-sm py-4 px-4">
+            <div class="max-w-4xl mx-auto">
+              <div class="flex items-center justify-between mb-4">
+                <button onclick="currentView='topic'; render();" class="text-gray-500 hover:text-gray-700">
+                  ✕ إنهاء
+                </button>
+                <div class="text-center">
+                  <div class="font-bold text-gray-800">${currentTopic.name}</div>
+                  <div class="text-sm text-gray-500">النموذج ${currentModel}</div>
+                </div>
+                <div class="text-blue-600 font-bold">${currentQuestionIndex + 1}/${questions.length}</div>
+              </div>
+              <div class="w-full bg-gray-100 rounded-full h-2">
+                <div class="h-2 rounded-full bg-blue-600 transition-all duration-300" style="width: ${progress}%"></div>
+              </div>
+            </div>
+          </header>
+          
+          <div class="max-w-4xl mx-auto px-4 py-8">
+            <div class="bg-white rounded-2xl shadow-lg p-8 animate-fade">
+              <div class="text-center mb-8">
+                <span class="inline-block px-4 py-2 bg-blue-50 text-blue-600 rounded-full text-sm font-medium mb-4">
+                  السؤال ${currentQuestionIndex + 1}
+                </span>
+                <h2 class="text-xl font-bold text-gray-800 leading-relaxed">${question.text}</h2>
+              </div>
+              
+              <div class="space-y-3">
+                ${question.options.map((option, idx) => `
+                  <button onclick="selectAnswer(${idx})" 
+                    class="w-full text-right p-4 rounded-xl border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center gap-4 group">
+                    <span class="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-blue-100 flex items-center justify-center font-bold text-gray-600 group-hover:text-blue-600">
+                      ${['أ', 'ب', 'ج', 'د'][idx]}
+                    </span>
+                    <span class="text-gray-700 font-medium">${option}</span>
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function selectAnswer(answerIdx) {
+      userAnswers.push(answerIdx);
+      
+      const questions = generateQuestions(currentTopic.id, currentModel);
+      
+      if (currentQuestionIndex < questions.length - 1) {
+        currentQuestionIndex++;
+        renderQuiz();
+      } else {
+        finishQuiz();
+      }
+    }
+
+    async function finishQuiz() {
+      const questions = generateQuestions(currentTopic.id, currentModel);
+      let score = 0;
+      
+      questions.forEach((q, idx) => {
+        if (userAnswers[idx] === q.answer) score++;
+      });
+      
+      // Check if this model was already completed
+      const existingRecord = allRecords.find(r => 
+        r.student_name === currentUser && 
+        r.topic_id === currentTopic.id && 
+        r.model_number === currentModel
+      );
+      
+      if (existingRecord) {
+        // Update existing record if score is better
+        if (score > existingRecord.score) {
+          existingRecord.score = score;
+          existingRecord.completed_at = new Date().toISOString();
+          saveData();
+        }
+      } else {
+        // Add new record
+        allRecords.push({
+          type: 'quiz_result',
+          student_name: currentUser,
+          topic_id: currentTopic.id,
+          model_number: currentModel,
+          score: score,
+          total_questions: questions.length,
+          completed_at: new Date().toISOString()
+        });
+        saveData();
+      }
+      
+      currentView = 'result';
+      render();
+    }
+
+    function renderResult() {
+      const app = document.getElementById('app');
+      const questions = generateQuestions(currentTopic.id, currentModel);
+      let score = 0;
+      
+      questions.forEach((q, idx) => {
+        if (userAnswers[idx] === q.answer) score++;
+      });
+      
+      const percentage = Math.round(score / questions.length * 100);
+      const emoji = percentage >= 80 ? '🏆' : percentage >= 60 ? '👍' : percentage >= 40 ? '💪' : '📚';
+      const message = percentage >= 80 ? 'ممتاز! أداء رائع' : percentage >= 60 ? 'جيد جداً! استمر' : percentage >= 40 ? 'جيد! تحتاج مراجعة' : 'تحتاج مزيد من التدريب';
+      
+      app.innerHTML = `
+        <div class="min-h-full bg-slate-50 flex items-center justify-center p-4">
+          <div class="w-full max-w-md">
+            <div class="bg-white rounded-3xl shadow-2xl p-8 text-center animate-fade">
+              <div class="text-6xl mb-4">${emoji}</div>
+              <h1 class="text-2xl font-bold text-gray-800 mb-2">${message}</h1>
+              <p class="text-gray-500 mb-6">${currentTopic.name} - النموذج ${currentModel}</p>
+              
+              <div class="relative w-40 h-40 mx-auto mb-6">
+                <svg class="transform -rotate-90" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" stroke-width="8"/>
+                  <circle cx="50" cy="50" r="45" fill="none" stroke="${percentage >= 60 ? '#22c55e' : '#f59e0b'}" 
+                    stroke-width="8" stroke-linecap="round"
+                    stroke-dasharray="${percentage * 2.83} 283"
+                    class="progress-ring"/>
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <div>
+                    <div class="text-4xl font-bold text-gray-800">${percentage}%</div>
+                    <div class="text-sm text-gray-500">${score}/${questions.length}</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="space-y-3">
+                <button onclick="startQuiz(${currentModel})" 
+                  class="w-full btn-primary text-white font-bold py-3 px-6 rounded-xl transition">
+                  إعادة الاختبار
+                </button>
+                <button onclick="currentView='topic'; render();" 
+                  class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-6 rounded-xl transition">
+                  اختيار نموذج آخر
+                </button>
+                <button onclick="currentView='dashboard'; render();" 
+                  class="w-full text-gray-500 hover:text-gray-700 font-medium py-2 transition">
+                  العودة للرئيسية
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAdminDashboard() {
+      const app = document.getElementById('app');
+      
+      // Get unique students
+      const students = [...new Set(allRecords.map(r => r.student_name))];
+      
+      // Calculate stats per student
+      const studentStats = students.map(name => {
+        const records = allRecords.filter(r => r.student_name === name);
+        const avgScore = records.length > 0 
+          ? Math.round(records.reduce((a, r) => a + (r.score / r.total_questions * 100), 0) / records.length)
+          : 0;
+        return {
+          name,
+          totalTests: records.length,
+          avgScore,
+          lastActivity: records.length > 0 ? new Date(Math.max(...records.map(r => new Date(r.completed_at)))).toLocaleDateString('ar-SA') : '-'
+        };
+      });
+      
+      app.innerHTML = `
+        <div class="min-h-full bg-slate-50">
+          <header class="bg-gradient-to-r from-amber-500 to-orange-600 text-white py-6 px-4">
+            <div class="max-w-6xl mx-auto flex items-center justify-between">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <span class="text-2xl">👨‍💼</span>
+                </div>
+                <div>
+                  <h1 class="text-xl font-bold">لوحة تحكم المدير</h1>
+                  <p class="text-amber-100 text-sm">مرحباً، ${currentUser}</p>
+                </div>
+              </div>
+              <button onclick="logout()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition">
+                خروج
+              </button>
+            </div>
+          </header>
+          
+          <!-- Overview Stats -->
+          <div class="max-w-6xl mx-auto px-4 -mt-4">
+            <div class="bg-white rounded-2xl shadow-lg p-6 grid grid-cols-4 gap-4">
+              <div class="text-center">
+                <div class="text-3xl font-bold text-blue-600">${students.length}</div>
+                <div class="text-gray-500 text-sm">عدد الطلاب</div>
+              </div>
+              <div class="text-center border-x border-gray-100">
+                <div class="text-3xl font-bold text-green-600">${allRecords.length}</div>
+                <div class="text-gray-500 text-sm">إجمالي الاختبارات</div>
+              </div>
+              <div class="text-center border-l border-gray-100">
+                <div class="text-3xl font-bold text-purple-600">${allRecords.length > 0 ? Math.round(allRecords.reduce((a, r) => a + (r.score / r.total_questions * 100), 0) / allRecords.length) : 0}%</div>
+                <div class="text-gray-500 text-sm">متوسط النتائج</div>
+              </div>
+              <div class="text-center">
+                <div class="text-3xl font-bold text-amber-600">${topics.length * 55}</div>
+                <div class="text-gray-500 text-sm">إجمالي النماذج</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Students Table -->
+          <div class="max-w-6xl mx-auto px-4 py-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-6">📋 قائمة الطلاب</h2>
+            
+            ${students.length === 0 ? `
+              <div class="bg-white rounded-2xl shadow-lg p-12 text-center">
+                <div class="text-6xl mb-4">📭</div>
+                <h3 class="text-xl font-bold text-gray-700 mb-2">لا يوجد طلاب بعد</h3>
+                <p class="text-gray-500">سيظهر الطلاب هنا بعد تسجيل دخولهم وإكمال الاختبارات</p>
+              </div>
+            ` : `
+              <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <table class="w-full">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th class="text-right py-4 px-6 font-bold text-gray-700">الطالب</th>
+                      <th class="text-center py-4 px-6 font-bold text-gray-700">الاختبارات المكتملة</th>
+                      <th class="text-center py-4 px-6 font-bold text-gray-700">متوسط النتائج</th>
+                      <th class="text-center py-4 px-6 font-bold text-gray-700">آخر نشاط</th>
+                      <th class="text-center py-4 px-6 font-bold text-gray-700">التفاصيل</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-100">
+                    ${studentStats.map(student => `
+                      <tr class="hover:bg-gray-50 transition">
+                        <td class="py-4 px-6">
+                          <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                              ${student.name.charAt(0)}
+                            </div>
+                            <span class="font-medium text-gray-800">${student.name}</span>
+                          </div>
+                        </td>
+                        <td class="py-4 px-6 text-center">
+                          <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full font-medium">${student.totalTests}</span>
+                        </td>
+                        <td class="py-4 px-6 text-center">
+                          <span class="px-3 py-1 ${student.avgScore >= 60 ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'} rounded-full font-medium">
+                            ${student.avgScore}%
+                          </span>
+                        </td>
+                        <td class="py-4 px-6 text-center text-gray-500">${student.lastActivity}</td>
+                        <td class="py-4 px-6 text-center">
+                          <button onclick="showStudentDetails('${student.name}')" 
+                            class="text-blue-600 hover:text-blue-800 font-medium">
+                            عرض التفاصيل
+                          </button>
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `}
+          </div>
+          
+          <!-- Topics Progress -->
+          <div class="max-w-6xl mx-auto px-4 pb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-6">📊 إحصائيات الموضوعات</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              ${topics.map(topic => {
+                const topicRecords = allRecords.filter(r => r.topic_id === topic.id);
+                const avgScore = topicRecords.length > 0 
+                  ? Math.round(topicRecords.reduce((a, r) => a + (r.score / r.total_questions * 100), 0) / topicRecords.length)
+                  : 0;
+                
+                return `
+                  <div class="bg-white rounded-xl p-6 shadow-lg">
+                    <div class="flex items-center gap-3 mb-4">
+                      <span class="text-3xl">${topic.icon}</span>
+                      <h3 class="font-bold text-gray-800">${topic.name}</h3>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 text-center">
+                      <div>
+                        <div class="text-2xl font-bold" style="color: ${topic.color}">${topicRecords.length}</div>
+                        <div class="text-xs text-gray-500">اختبار مكتمل</div>
+                      </div>
+                      <div>
+                        <div class="text-2xl font-bold text-gray-700">${avgScore}%</div>
+                        <div class="text-xs text-gray-500">متوسط النتائج</div>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function showStudentDetails(studentName) {
+      const studentRecords = allRecords.filter(r => r.student_name === studentName);
+      
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50';
+      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+      
+      modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80%] overflow-hidden">
+          <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6">
+            <div class="flex items-center justify-between">
+              <h2 class="text-xl font-bold">تفاصيل الطالب: ${studentName}</h2>
+              <button onclick="this.closest('.fixed').remove()" class="text-white/80 hover:text-white text-2xl">×</button>
+            </div>
+          </div>
+          <div class="p-6 overflow-auto max-h-96">
+            ${studentRecords.length === 0 ? `
+              <p class="text-center text-gray-500 py-8">لا توجد نتائج بعد</p>
+            ` : `
+              <table class="w-full">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="text-right py-3 px-4 text-sm font-bold text-gray-600">الموضوع</th>
+                    <th class="text-center py-3 px-4 text-sm font-bold text-gray-600">النموذج</th>
+                    <th class="text-center py-3 px-4 text-sm font-bold text-gray-600">النتيجة</th>
+                    <th class="text-center py-3 px-4 text-sm font-bold text-gray-600">التاريخ</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                  ${studentRecords.map(record => {
+                    const topic = topics.find(t => t.id === record.topic_id);
+                    const percentage = Math.round(record.score / record.total_questions * 100);
+                    return `
+                      <tr>
+                        <td class="py-3 px-4">
+                          <span class="flex items-center gap-2">
+                            <span>${topic?.icon || '📝'}</span>
+                            <span>${topic?.name || record.topic_id}</span>
+                          </span>
+                        </td>
+                        <td class="py-3 px-4 text-center">${record.model_number}</td>
+                        <td class="py-3 px-4 text-center">
+                          <span class="px-2 py-1 rounded-full text-sm ${percentage >= 60 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}">
+                            ${record.score}/${record.total_questions} (${percentage}%)
+                          </span>
+                        </td>
+                        <td class="py-3 px-4 text-center text-gray-500 text-sm">
+                          ${new Date(record.completed_at).toLocaleDateString('ar-SA')}
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            `}
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+    }
+
+    function logout() {
+      currentUser = null;
+      isAdmin = false;
+      currentView = 'login';
+      currentTopic = null;
+      currentModel = null;
+      render();
+    }
+
+    // Initialize
+    initApp();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d269cf213b674d8',t:'MTc3MTg0ODU1My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
